@@ -1,0 +1,65 @@
+---
+- name: Create users and configure SSH access
+  hosts: all
+  become: yes
+  tasks:
+    - name: Add users
+      user:
+        name: "{{ item }}"
+        state: present
+        shell: /bin/bash
+        create_home: yes
+        home: "/home/{{ item }}"
+      loop:
+        - gcarballo
+        - nhermida
+        - rgarcia
+        - jlarumbe
+
+    - name: Add users to sudoers with NOPASSWD
+      copy:
+        dest: "/etc/sudoers.d/{{ item }}"
+        content: "{{ item }} ALL=(ALL) NOPASSWD: ALL\n"
+        mode: '0440'
+      loop:
+        - gcarballo
+        - nhermida
+        - rgarcia
+        - jlarumbe
+
+    - name: Create .ssh directory for users
+      file:
+        path: "/home/{{ item }}/.ssh"
+        state: directory
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        mode: '0700'
+      loop:
+        - gcarballo
+        - nhermida
+        - rgarcia
+        - jlarumbe
+
+    - name: Create authorized_keys file for users
+      file:
+        path: "/home/{{ item }}/.ssh/authorized_keys"
+        state: touch
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        mode: '0600'
+      loop:
+        - gcarballo
+        - nhermida
+        - rgarcia
+        - jlarumbe
+
+    - name: Add SSH public keys to authorized_keys
+      lineinfile:
+        path: "/home/{{ item.user }}/.ssh/authorized_keys"
+        line: "{{ item.key }}"
+        state: present
+      loop:
+        - { user: 'gcarballo', key: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCkP3Ppt1VzG6+51bmsZysskhuB7zjcB4vP46DxP6eOxJAJznVavo8a7vc23j86NaHhJT1HTAtmJgBaaF5bUVbgaQFZugOE/fHtPV7t179rjT+JhCTwjeuU+uJ92e8qE1Dk99Yw+ljt8sJVs9ZrizMhbM7GhtN4rI3HOQ39fu4vgB2lmMfX3MG0NXtXh0CjbvrVTdxyBnAdk6MAYqtVSSD+MdsQ6kG9r1eljMelhfhTSLYu7z8OQFxTOcljQpbfWzHBLa/Xhk1F5RB2jfUTdXOoplfkP66pYf6zSALUF4NgXXZfsTsbz92zvkXFjLE6J1C8JyZ79d2PV/nCllAXyVmz' }
+        - { user: 'nhermida', key: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCK8ktG8s4NzlHLnPh7+t5J0HB2Z7LYvZOl3fzLbSWaUJPNJUFxPrXp2VTJRFbHoerKtrmNjF3Q3aqmP3QLd+H7VK7UPwLl5AgYlgT56Nm66Ky96uOaLGMiKmIPjrJgF8EebqtksIwSBmn8MPSLw0EgMoa6FLA96171bHDq4VvvlVJQrwm9HyKcs9U4pUuoS7JHmXiQpQl6PFQKpTYoGxoqSC8xlpaAfBEhr9cjrFRvq7/UCFe6w1gl/Y03UWNscTlvC/yHE1Wqocaa2L+ySq03GO0Z9JqsGypp5BvEwbKHbMaVmKImwWR0NvSFPc4qmODD2vI2GxHgER4DhnUMTMx+23/VG9b/1RhXmLsgXHvvlArUjkRVEfB8NtL2Rd4mJOs8khZb+qtoa+WASwtrBEA0lYtfuKny+hglk21+SQMg7yYVVCRHkzP0Qe5MEyNYaiVfwWVy6oQtrA++aT1GW3X+S6oBqeaxIxz3DR8L41sNB3GAL8Cz1LXXwOFtDjaoZCD6p5sFhO22/s2EVy1Its7XocYeMhCeju4Ane19Wmh9I7/1JJTZv8sxJ16jj1EzlewYf2JHpwpTS4jnhFr+E5u6UbeGBkGIw3/pP0lArFcSdbgk4BA++VnTQyMBeSzcDl3X22D78T7fI5+hF46cheb1jqyWgdE0r97eDMCRNWb4SQ==' }
+        - { user: 'rgarcia', key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDh6d3zFhTUc3mIcmF+nyt2CbRC5SYFaNod/zvTTc9XM rgarcia@mamertonga4' }
+        - { user: 'jlarumbe', key: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDUyo+RFtuqSVglAow1PWLTSE1R9DsTMMdbZQ1h39LDEn+rbCTkz5rzja7yWL5c3XibxbBkW/qEoGsAz7/PQ0dyrGc6N6Jc7wbrg49teLF+7PHAfi5ReGQ3RcNN1HNTqNMMZasRcrfih76qzV7OsrrRa0UewGgmUHS5CK2heqswdToXlFk7ON2z7TbH3TRQZ61EOzj6GB7qP8sv0Nq+WeleJTk4R064SSm0ggCV/SM4S9Id04KpofntmbvinubPBEj3FtQoUl74DHbG+kabwvbMy36qVQQO67X2ocCo+WZ/hBCcPtMW+Ydb6000nKQgACv4f/2w0sHChjahl+0FQ5MSaPofBvbbpIW80gv4hX+b04caN7eHeKBahBsouijwXpaTk6/IZvzD7T/OyRtcycSXet2Fmj06Q+J9A+ECna6s3ub52ydsFCDyHPsvJ8CULgpN4Is+B9oUeOCNCfIry6s7aZvK32WLcbG7x9Pi2LQOcmJDUPPaZ2FNw2pMJJt7rnDyWzfe2p87rmQlc5KUbt3h708jkdMUtpWzAP9exIB1ST1nq4PmVxb6iufYovcZ7ZCC7W4D4F6mtJvYvQ8dxFw8TTI1ZLP4dBycGtpkgSnAUr4uKKAvQwBhSPRtJLmqL865bv3bH+03qjng6jS6dYk2BO+0gu07/PkrSsjZJKJfTw==' }
